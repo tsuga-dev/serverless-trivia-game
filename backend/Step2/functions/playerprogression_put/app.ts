@@ -20,6 +20,7 @@
 import { SNSEvent, SNSMessage } from 'aws-lambda';
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
+import { consumeInPublisherTrace } from "./sns-trace-context";
 
 const playerProgressTable = process.env.PLAYER_PROGRESS_TABLE_NAME!;
 const playerProgressIdemopotencyTable = process.env.PLAYER_PROGRESS_IDEMPOTENCY_TABLE_NAME!;
@@ -116,13 +117,15 @@ export const handler = async (event: SNSEvent) => {
   const message: SNSMessage = event.Records[0].Sns;
   const msgId = message.MessageId;
   const msg = JSON.parse(message.Message);
-  if (idempotencyCheck(msgId)) {
-    await Promise.all([
-      updateXP(msg.playerid, msg.experience, msg.wins),
-      updateXP(msg.owner, msg.experience, 0),
-    ])
-      .catch((e) => {
-        clearIdempotency(msgId);
-        console.error(`Error logging ${e.stack}`)});
-  }
+  await consumeInPublisherTrace(message, async () => {
+    if (idempotencyCheck(msgId)) {
+      await Promise.all([
+        updateXP(msg.playerid, msg.experience, msg.wins),
+        updateXP(msg.owner, msg.experience, 0),
+      ])
+        .catch((e) => {
+          clearIdempotency(msgId);
+          console.error(`Error logging ${e.stack}`)});
+    }
+  });
 };
