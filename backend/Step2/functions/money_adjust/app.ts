@@ -20,6 +20,7 @@
 import { SNSEvent, SNSMessage } from 'aws-lambda';
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, PutCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
+import { consumeInPublisherTrace } from "./sns-trace-context";
 
 const playerWalletTableName: string = process.env.PLAYER_WALLET_TABLE_NAME!;
 const playerWalletIdempotencyTableName: string = process.env.PLAYER_WALLET_IDEMPOTENCY_TABLE_NAME!;
@@ -99,5 +100,6 @@ export const handler = async (event: SNSEvent) => {
   const playerName: string = message.MessageAttributes.playerId?.Value!;
   const amount: number = +message.MessageAttributes.amount?.Value;
   const action: string = message.MessageAttributes.action?.Value!;
-  return await addToWallet(msgId, playerName, amount, action);
+  return await consumeInPublisherTrace(message,
+    () => addToWallet(msgId, playerName, amount, action));
 };

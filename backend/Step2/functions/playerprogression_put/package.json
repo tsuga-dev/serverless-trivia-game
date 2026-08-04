@@ -8,6 +8,7 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.351.0",
     "@aws-sdk/lib-dynamodb": "^3.238.0",
+    "@opentelemetry/api": "^1.9.0",
     "esbuild": "^0.14.14",
     "http-cache-semantics": "^4.1.1",
     "install": "^0.13.0",
