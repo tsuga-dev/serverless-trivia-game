@@ -17,7 +17,7 @@
 // Function: score_put:app.ts
 
 /* eslint no-console: ["error", { allow: ["warn", "error"] }] */
-import { SNSEvent, SNSMessage } from 'aws-lambda';
+import { SNSMessage, SQSEvent } from 'aws-lambda';
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 import { consumeInPublisherTrace } from "./sns-trace-context";
@@ -58,13 +58,13 @@ const updateScoreboard = async(gameId: string, quizName: string, playerName: str
     }
   } catch (e) {
     console.error(`could not get score info ${JSON.stringify(e.stack)}`);
-    return { statusCode: 500, body: 'Error getting score' };
+    throw e;
   }
 }
 
-export const handler = async (event: SNSEvent) => {
+export const handler = async (event: SQSEvent) => {
   console.log(`${JSON.stringify(event)}`);
-  let message: SNSMessage = event.Records[0].Sns;
+  let message: SNSMessage = JSON.parse(event.Records[0].body);
   const msg: any = JSON.parse(message.Message);
   return await consumeInPublisherTrace(message, () => updateScoreboard(msg?.gameId,
     msg?.quizName, msg?.playerid, msg?.score));
